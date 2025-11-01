@@ -1,14 +1,14 @@
 package com.example.product_management.controllers;
 
-import com.example.product_management.domain.Product;
-import com.example.product_management.service.ProductService;
+import com.example.product_management.converter.ProductConverter;
+import com.example.product_management.model.Product;
+import com.example.product_management.service.product.ProductService;
+import com.example.product_management.utils.BaseResponse;
+import com.example.product_management.dto.ProductDTO;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
-import java.net.URI;
 import java.util.List;
 
 //Controlador para la clase Producto
@@ -19,71 +19,67 @@ public class ProductController {
     @Autowired
     ProductService productService;
 
-    //Método GET vacío obtiene todos los productos
+    @Autowired
+    ProductConverter productConverter;
+
     @GetMapping
-    public ResponseEntity<?> getProducts(){
+    public ResponseEntity<BaseResponse<List<ProductDTO>>> getAllProducts() {
+        List<Product> products = productService.findAll();
 
-        List<Product> products = productService.getProducts();
+        List<ProductDTO> productsDTO = productConverter.fromEntity(products);
 
-        return ResponseEntity.ok(products);
-
+        return BaseResponse.success("Productos encontrados", productsDTO);
     }
 
-    //Método que obtiene un producto según el nombre obtenido del parámetro de la url
     @GetMapping("/{name}")
-    public ResponseEntity<?> getProduct(@PathVariable String name){
+    public ResponseEntity<BaseResponse<List<ProductDTO>>> getProductByName(@PathVariable String name){
+        List<Product> products = productService.showByName(name);
 
-        if (productService.getProduct(name) != null){
-            return ResponseEntity.ok(productService.getProduct(name));
-        }else{
-            return ResponseEntity.notFound().build();
-        }
+        List<ProductDTO> productsDTO = productConverter.fromEntity(products);
 
+        return BaseResponse.success("Producto encontrado", productsDTO);
     }
 
     //Método para crear un nuevo producto según los valores en el body
     @PostMapping
-    public ResponseEntity<?> postProduct(@RequestBody Product product){
+    public ResponseEntity<BaseResponse<ProductDTO>> postProduct(@RequestBody Product product){
 
-        URI location = ServletUriComponentsBuilder.
-                fromCurrentRequest().path("/{name}").buildAndExpand(product.getName()).toUri();
+        productService.create(product);
 
-        productService.postProduct(product);
+        ProductDTO productDTO = productConverter.fromEntity(product);
 
-        return ResponseEntity.created(location).body(product);
+        return BaseResponse.success("Producto creado existosamente", productDTO);
 
     }
 
     //Método para actualizar un producto según los valores en el body
     @PutMapping
-    public ResponseEntity<?> putProduct(@RequestBody Product product){
+    public ResponseEntity<BaseResponse<ProductDTO>> putProduct(@RequestBody Product product){
 
-        if(productService.putProduct(product) != null){
-            return ResponseEntity.noContent().build();
-        }else {
-            return ResponseEntity.notFound().build();
-        }
+        Product productUpdate = productService.edit(product);
+
+        ProductDTO productDTO = productConverter.fromEntity(productUpdate);
+
+        return BaseResponse.success("Producto editado existosamente", productDTO);
     }
 
     //Método para actualizar parcialmente un producto según los valores en el body
     @PatchMapping
-    public ResponseEntity<?> patchProduct(@RequestBody Product product){
+    public ResponseEntity<BaseResponse<ProductDTO>> patchProduct(@RequestBody Product product){
+        Product productUpdate = productService.softEdit(product);
 
-        if(productService.patchProduct(product) != null){
-            return ResponseEntity.ok("Producto modificado satisfactoriamente");
-        }else {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Producto no encontrado con id: " + product.getId());
-        }
+        ProductDTO productDTO = productConverter.fromEntity(productUpdate);
+
+        return BaseResponse.success("Producto editado existosamente", productDTO);
     }
 
     //Método para borrar un producto por su id obtenido del parámetro de la url
     @DeleteMapping("{id}")
-    public ResponseEntity<?> deleteProduct(@PathVariable int id){
+    public ResponseEntity<BaseResponse<ProductDTO>> deleteProduct(@PathVariable int id){
 
-        if(productService.deleteProduct(id) != null){
-            return ResponseEntity.ok("Producto eliminado satisfactoriamente");
-        }else {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Producto no encontrado con id: " + id);
-        }
+        productService.hardDelete(id);
+
+        return BaseResponse.success("Producto eliminado satisfactoriamente", null);
+
     }
 }
