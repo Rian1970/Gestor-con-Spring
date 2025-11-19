@@ -31,5 +31,6 @@ build/
 
 ### VS Code ###
 .vscode/
-
 .resouces/application-prod.properties
+
+logs
